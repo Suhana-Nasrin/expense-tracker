@@ -38,7 +38,9 @@ export default function FoodCategoryPage() {
   const [showForm, setShowForm] = useState(false);
   const [itemName, setItemName] = useState("");
   const [price, setPrice] = useState("");
-  const [date, setDate] = useState("2026-11-08");
+ const [date, setDate] = useState(
+  new Date().toISOString().split("T")[0]
+);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<{ name: string; icon: string } | null>(null);
 

@@ -21,6 +21,10 @@ const expenseSchema = new mongoose.Schema(
       required: true,
       min: 0.01,
     },
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,  
+        default: null,
+    }
   },
   { timestamps: true },
 );

@@ -112,7 +112,7 @@ export default function Home() {
           <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-                Good morning, Sufaina 👋
+                Good morning, 👋
               </h1>
               <p className="mt-2 text-sm text-slate-500">
                 Manage your expenses and stay on top of your budget.

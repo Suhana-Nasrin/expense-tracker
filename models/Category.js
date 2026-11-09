@@ -17,6 +17,10 @@ const categorySchema = new mongoose.Schema(
       type: String,
       default: "other",
     },
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,  
+        default: null,
+    }
    
   },
   { timestamps: true }
