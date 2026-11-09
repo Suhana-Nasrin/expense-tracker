@@ -14,6 +14,10 @@ const BudgetSchema = new mongoose.Schema(
       type: String,
       default: "0",
     },
+    date:{
+       type:Date,
+       default:new Date()
+    },
     userId: {
         type: mongoose.Schema.Types.ObjectId,  
         default: null,

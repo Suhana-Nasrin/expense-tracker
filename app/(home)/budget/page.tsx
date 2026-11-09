@@ -23,12 +23,33 @@ export default function BudgetOptionsPage() {
     setSaved(false);
   };
 
-  const saveBudget = () => {
-    if (!amount || Number(amount) <= 0) return;
-    // Replace this with your API call / database persistence.
-    setSaved(true);
-  };
+ const saveBudget = async () => {
+  if (!amount || Number(amount) <= 0) return;
 
+  try {
+    const res = await fetch("/api/budgets", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        bType: "monthly",
+        budget: String(amount),
+        saving: "0",
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to save budget");
+    }
+
+    setSaved(true);
+  } catch (error) {
+    console.error("Budget saving error:", error);
+  }
+};
   return (
     <main className="min-h-screen bg-[#f7f8f6] px-5 py-8 text-slate-900 sm:px-8">
       <div className="mx-auto max-w-5xl">
