@@ -23,33 +23,33 @@ export default function BudgetOptionsPage() {
     setSaved(false);
   };
 
- const saveBudget = async () => {
-  if (!amount || Number(amount) <= 0) return;
+  const saveBudget = async () => {
+    if (!amount || Number(amount) <= 0) return;
 
-  try {
-    const res = await fetch("/api/budgets", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        bType: "monthly",
-        budget: String(amount),
-        saving: "0",
-      }),
-    });
+    try {
+      const res = await fetch("/api/budgets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bType: "monthly",
+          budget: String(amount),
+          saving: "0",
+        }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (!res.ok) {
-      throw new Error(data.message || "Failed to save budget");
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to save budget");
+      }
+
+      setSaved(true);
+    } catch (error) {
+      console.error("Budget saving error:", error);
     }
-
-    setSaved(true);
-  } catch (error) {
-    console.error("Budget saving error:", error);
-  }
-};
+  };
   return (
     <main className="min-h-screen bg-[#f7f8f6] px-5 py-8 text-slate-900 sm:px-8">
       <div className="mx-auto max-w-5xl">
@@ -151,7 +151,7 @@ export default function BudgetOptionsPage() {
                 >
                   Budget amount (₹)
                 </label>
-
+                <h1>Hello</h1>
                 <div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 px-4 focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-50">
                   <IndianRupee size={18} className="text-slate-400" />
 
