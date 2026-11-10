@@ -5,9 +5,9 @@ import {
   LayoutDashboard,
   PieChart,
   Grid2X2,
-  ChartNoAxesColumn,
   Settings,
   Calendar,
+  ChartNoAxesCombined,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -25,9 +25,9 @@ export default function Sidebar() {
       <aside className="hidden w-64 h-full shrink-0 border-r border-slate-200 bg-white p-6 md:flex md:flex-col">
         <div className="mb-10 flex items-center gap-2 text-xl font-bold tracking-tight">
           <span className="rounded-xl bg-emerald-100 p-2 text-emerald-700">
-            <Utensils size={22} />
+            <ChartNoAxesCombined size={22} />
           </span>
-          Food<span className="text-emerald-600">Budget</span>
+          Expense<span className="text-emerald-600">Tracker</span>
         </div>
         <nav className="space-y-2">
           {navItems.map((item) => {

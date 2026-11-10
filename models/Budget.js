@@ -21,6 +21,12 @@ const BudgetSchema = new mongoose.Schema(
     userId: {
         type: mongoose.Schema.Types.ObjectId,  
         default: null,
+    },
+    year: {
+      type: String
+    },
+    month: {
+      type: String
     }
    
   },
