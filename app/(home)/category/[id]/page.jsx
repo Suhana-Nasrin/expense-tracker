@@ -10,15 +10,13 @@ import {
   ArrowLeft,
   Search,
   Receipt,
-  PiggyBank
+  PiggyBank,
 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { MapPin, ShoppingBag, Shirt, Heart, Tag } from "lucide-react";
 import Link from "next/link";
 import { useBudget } from "@/context/BudgeContext";
 import { useExpense } from "@/context/ExpenseContext";
-
-
 
 const inr = (value) =>
   new Intl.NumberFormat("en-IN", {
@@ -30,10 +28,10 @@ const inr = (value) =>
 export default function FoodCategoryPage() {
   const params = useParams();
 
-  const { expense } = useExpense();
-  const {budget} = useBudget();
+  const { expense, setExpense } = useExpense();
+  const { budget } = useBudget();
 
-  const categoryId = params.id ;
+  const categoryId = params.id;
   const [items, setItems] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [itemName, setItemName] = useState("");
@@ -102,6 +100,10 @@ export default function FoodCategoryPage() {
         { id: Date.now(), date, item: itemName.trim(), price: Number(price) },
       ]);
 
+      setExpense((e) => ({
+        ...e,
+        totalExpense: e.totalExpense + Number(price),
+      }));
       setItemName("");
       setPrice("");
       setShowForm(false);
@@ -150,7 +152,12 @@ export default function FoodCategoryPage() {
               <Wallet size={18} />
               <div>
                 <p className="text-xs font-medium">Available Budget</p>
-                <p className="font-semibold">{inr(Number(budget?.budget) - (Number(expense?.totalExpense) ||0 ))}</p>
+                <p className="font-semibold">
+                  {inr(
+                    Number(budget?.budget) -
+                      (Number(expense?.totalExpense) || 0),
+                  )}
+                </p>
               </div>
             </div>
 

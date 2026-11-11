@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 import { useBudget } from "@/context/BudgeContext";
 
@@ -18,7 +13,9 @@ export function ExpenseProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (budgetLoading) return;
+    if (budgetLoading) {
+      return;
+    }
 
     if (!budget) {
       setExpense(null);
@@ -35,10 +32,7 @@ export function ExpenseProvider({ children }) {
         params.set("type", budget.bType);
 
         if (budget.bType === "daily") {
-          params.set(
-            "date",
-            new Date(budget.date).toISOString().split("T")[0]
-          );
+          params.set("date", new Date(budget.date).toISOString().split("T")[0]);
         }
 
         if (budget.bType === "monthly") {
@@ -46,9 +40,7 @@ export function ExpenseProvider({ children }) {
           params.set("year", budget.year);
         }
 
-        const res = await fetch(
-          `/api/expense/current?${params.toString()}`
-        );
+        const res = await fetch(`/api/expense/current?${params.toString()}`);
 
         const data = await res.json();
 
@@ -66,9 +58,7 @@ export function ExpenseProvider({ children }) {
   }, [budget, budgetLoading]);
 
   return (
-    <ExpenseContext.Provider
-      value={{ expense, setExpense, loading }}
-    >
+    <ExpenseContext.Provider value={{ expense, setExpense, loading }}>
       {children}
     </ExpenseContext.Provider>
   );
