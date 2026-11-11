@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 import {
   CalendarDays,
   ChevronDown,
@@ -8,43 +9,87 @@ import {
   TrendingDown,
   Plus,
   Filter,
-  } from "lucide-react";
-
-type Expense = {
-  id: number;
-  date: string;
-  item: string;
-  category: string;
-  price: number;
-};
-
-const initialExpenses: Expense[] = [
-  { id: 1, date: "2026-11-02", item: "Biriyani", category: "Food", price: 100 },
-  { id: 2, date: "2026-11-02", item: "Jean", category: "Clothes", price: 500 },
-  { id: 3, date: "2026-11-02", item: "Kozhikode", category: "Travel", price: 130 },
-];
-
-const categories = ["Food", "Clothes", "Travel", "Shopping", "Other"];
+} from "lucide-react";
 
 export default function MonthlyOverviewPage() {
-  const [expenses, setExpenses] = useState(initialExpenses);
-  const [month, setMonth] = useState("2026-11");
+  const params = useParams();
+  const slug = params.slug;
+  const [monthName, year] = slug.split("-");
+  const monthNumber = new Date(`${monthName} 1, ${year}`).getMonth() + 1;
+  const [expenses, setExpenses] = useState([]);
+  const [month, setMonth] = useState(
+    `${year}-${String(monthNumber).padStart(2, "0")}`,
+  );
+  console.log("month---",month);
+  const [categories, setCategories] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState("All");
-  const [balance, setBalance] = useState(23000);
+  const [balance, setBalance] = useState(0);
+  const [totalExpense, setTotalExpense] = useState(0);
 
-  const [newExpense, setNewExpense] = useState({
-    date: "2026-11-08",
-    item: "",
-    category: "",
-    price: "",
-  });
+  useEffect(() => {
+    const fetchExpensesOfMonth = async () => {
+      try {
+        const res = await fetch(
+          `/api/expense/month?year=${Number(year)}&month=${monthName}`,
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.message);
+        }
+        setExpenses(data?.expenses);
+        setTotalExpense(Number(data?.totalExpense || 0));
+        if (data?.monthwiseBudget) {
+          const budgetValue = Number(data?.monthwiseBudget?.budget);
+          const expenseValue = Number(data?.totalExpense);
+
+          const budget = Number.isFinite(budgetValue) ? budgetValue : 0;
+          const expense = Number.isFinite(expenseValue) ? expenseValue : 0;
+
+          setBalance(budget - expense);
+        }
+        if (data?.daywiseBudgets?.length > 0) {
+          const totalDaywiseBudget = data.daywiseBudgets.reduce(
+            (total, budget) => {
+              const amount = Number(budget.budget);
+
+              return total + (Number.isFinite(amount) ? amount : 0);
+            },
+            0,
+          );
+
+          const expenseValue = Number(data?.totalExpense);
+          const totalExpense = Number.isFinite(expenseValue) ? expenseValue : 0;
+
+          setBalance(totalDaywiseBudget - totalExpense);
+        }
+      } catch (error) {}
+    };
+    fetchExpensesOfMonth();
+  }, [month]);
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const resp = await fetch("/api/category", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+        const data = await resp.json();
+        console.log("data", data);
+        setCategories(data?.categories || []);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const filteredExpenses = useMemo(() => {
     return expenses.filter((expense) => {
       const matchesMonth = expense.date.startsWith(month);
       const matchesCategory =
-        categoryFilter === "All" ||
-        expense.category === categoryFilter;
+        categoryFilter === "All" || expense.categoryId?._id === categoryFilter;
 
       return matchesMonth && matchesCategory;
     });
@@ -52,42 +97,15 @@ export default function MonthlyOverviewPage() {
 
   const total = filteredExpenses.reduce(
     (sum, expense) => sum + expense.price,
-    0
+    0,
   );
-
-  const addExpense = () => {
-    if (!newExpense.item || !newExpense.category || !newExpense.price) {
-      alert("Please enter item, category and price.");
-      return;
-    }
-
-    setExpenses((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        date: newExpense.date,
-        item: newExpense.item,
-        category: newExpense.category,
-        price: Number(newExpense.price),
-      },
-    ]);
-
-    setNewExpense({
-      date: "2026-11-08",
-      item: "",
-      category: "",
-      price: "",
-    });
-  };
 
   return (
     <main className="min-h-screen bg-slate-50 p-4 md:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
-
         {/* Header */}
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-    
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
               Monthly Overview
             </h1>
@@ -96,7 +114,7 @@ export default function MonthlyOverviewPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
               <CalendarDays size={18} className="text-emerald-600" />
               <input
@@ -106,7 +124,7 @@ export default function MonthlyOverviewPage() {
                 className="bg-transparent text-sm font-medium text-slate-700 outline-none"
               />
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Summary Cards */}
@@ -119,7 +137,7 @@ export default function MonthlyOverviewPage() {
               </div>
             </div>
             <h2 className="mt-3 text-2xl font-bold text-slate-900">
-              ₹{balance.toLocaleString("en-IN")}
+              ₹{Number(balance)}
             </h2>
             <p className="mt-1 text-xs text-slate-400">
               Current available amount
@@ -134,7 +152,7 @@ export default function MonthlyOverviewPage() {
               </div>
             </div>
             <h2 className="mt-3 text-2xl font-bold text-slate-900">
-              ₹{total.toLocaleString("en-IN")}
+              ₹{totalExpense}
             </h2>
             <p className="mt-1 text-xs text-slate-400">
               Expenses for selected month
@@ -149,11 +167,9 @@ export default function MonthlyOverviewPage() {
               </div>
             </div>
             <h2 className="mt-3 text-2xl font-bold text-slate-900">
-              {filteredExpenses.length}
+              {expenses?.length}
             </h2>
-            <p className="mt-1 text-xs text-slate-400">
-              Recorded transactions
-            </p>
+            <p className="mt-1 text-xs text-slate-400">Recorded transactions</p>
           </div>
         </div>
 
@@ -178,8 +194,8 @@ export default function MonthlyOverviewPage() {
               >
                 <option value="All">All Categories</option>
                 {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
+                  <option key={category} value={category?._id}>
+                    {category?.name}
                   </option>
                 ))}
               </select>
@@ -205,21 +221,18 @@ export default function MonthlyOverviewPage() {
                       {index + 1}
                     </td>
                     <td className="px-5 py-4 text-sm text-slate-600">
-                      {new Date(expense.date + "T00:00:00").toLocaleDateString(
-                        "en-IN",
-                        {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "2-digit",
-                        }
-                      )}
+                      {new Date(expense.date).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "2-digit",
+                      })}
                     </td>
                     <td className="px-5 py-4 text-sm font-medium text-slate-800">
                       {expense.item}
                     </td>
                     <td className="px-5 py-4">
                       <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                        {expense.category}
+                        {expense?.categoryId?.name}
                       </span>
                     </td>
                     <td className="px-5 py-4 text-right text-sm font-semibold text-slate-800">
@@ -229,7 +242,7 @@ export default function MonthlyOverviewPage() {
                 ))}
 
                 {/* Add Expense Row */}
-                <tr className="bg-slate-50/70">
+                {/* <tr className="bg-slate-50/70">
                   <td className="px-5 py-3 text-sm text-slate-400">
                     <Plus size={16} />
                   </td>
@@ -283,7 +296,7 @@ export default function MonthlyOverviewPage() {
                       className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-right text-sm outline-none focus:border-emerald-500"
                     />
                   </td>
-                </tr>
+                </tr> */}
               </tbody>
             </table>
           </div>
@@ -306,13 +319,13 @@ export default function MonthlyOverviewPage() {
                 </p>
               </div>
 
-              <button
+              {/* <button
                 onClick={addExpense}
                 className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700"
               >
                 <Plus size={16} />
                 Add Expense
-              </button>
+              </button> */}
             </div>
           </div>
         </section>
@@ -321,19 +334,14 @@ export default function MonthlyOverviewPage() {
         <div className="flex flex-col items-center justify-between gap-4 rounded-2xl bg-emerald-600 p-5 text-white sm:flex-row">
           <div>
             <p className="text-sm text-emerald-100">Remaining Balance</p>
-            <p className="mt-1 text-2xl font-bold">
-              ₹{(balance - total).toLocaleString("en-IN")}
-            </p>
+            <p className="mt-1 text-2xl font-bold">₹{balance}</p>
           </div>
 
           <div className="text-left sm:text-right">
             <p className="text-sm text-emerald-100">Total Spent</p>
-            <p className="mt-1 text-2xl font-bold">
-              ₹{total.toLocaleString("en-IN")}
-            </p>
+            <p className="mt-1 text-2xl font-bold">₹{totalExpense}</p>
           </div>
         </div>
-
       </div>
     </main>
   );

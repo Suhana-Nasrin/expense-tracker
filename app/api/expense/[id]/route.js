@@ -3,9 +3,19 @@ import { connectDB } from "@/lib/mongo";
 import Expense from "@/models/Expense";
 import Category from "@/models/Category";
 import mongoose from "mongoose";
+import {getAuthUser} from "@/lib/auth"
 
 export async function GET(request, { params }) {
   try {
+    const auth = await getAuthUser();
+
+    if (!auth) {
+      return NextResponse.json(
+        { message: "Unauthorized. Please login." },
+        { status: 401 }
+      );
+    }
+
     await connectDB();
 
     const { id } = await params;
@@ -19,9 +29,9 @@ export async function GET(request, { params }) {
     }
 
     const category = await Category.findById(id);
-    // Fetch expenses belonging to this category
     const expenses = await Expense.find({
       categoryId: id,
+      userId: auth.userId
     })
       .populate("categoryId", "name icon")
       .sort({ date: -1 });
@@ -32,7 +42,7 @@ export async function GET(request, { params }) {
       category,
     });
   } catch (error) {
-    console.error("GET category expenses:", error);
+   
 
     return NextResponse.json(
       { success: false, message: "Failed to fetch category expenses" },

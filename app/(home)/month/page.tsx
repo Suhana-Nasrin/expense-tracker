@@ -13,6 +13,7 @@ import {
   Wallet,
 } from "lucide-react";
 
+
 const months = [
   "January",
   "February",
@@ -29,13 +30,14 @@ const months = [
 ];
 
 export default function MonthlyOverviewPage() {
-  const [year, setYear] = useState(2027);
+  const [year, setYear] = useState(2026);
   const [activeSection, setActiveSection] = useState<
     "month" | "wishlist" | "other"
   >("month");
 
   const changeYear = (step: number) => setYear((current) => current + step);
 
+ 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto flex min-h-screen max-w-7xl">
@@ -98,7 +100,7 @@ export default function MonthlyOverviewPage() {
                   {months.map((month, index) => (
                     <Link
                       key={month}
-                      href={`/monthly-overview/${year}/${index + 1}`}
+                      href={`/month/${month}-${year}`}
                       className="group flex min-h-32 flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md"
                     >
                       <span className="mb-3 rounded-xl bg-slate-100 p-2.5 text-slate-600 transition group-hover:bg-emerald-100 group-hover:text-emerald-800">

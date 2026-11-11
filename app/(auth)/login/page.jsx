@@ -17,22 +17,49 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleLogin(e) {
     e.preventDefault();
 
-    console.log({ email, password });
+    setError("");
 
-    // Connect your authentication API here
-  };
+    try {
+      setLoading(true);
+
+      const res = await fetch("/api/auth/signin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || "Login failed");
+        return;
+      }
+
+      // JWT cookie is automatically set by the API
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Login error:", error);
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <main className="flex min-h-screen bg-white">
-
       {/* LEFT SECTION */}
       <section className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-emerald-50 p-12 lg:flex">
-
-        
-
         <div className="relative z-10 max-w-lg">
           <h1 className="text-5xl font-bold leading-tight text-slate-900">
             Your money.
@@ -43,16 +70,14 @@ export default function LoginPage() {
           </h1>
 
           <p className="mt-6 text-lg leading-8 text-slate-600">
-            Manage your daily expenses, plan budgets, and
-            achieve your financial goals effortlessly.
+            Manage your daily expenses, plan budgets, and achieve your financial
+            goals effortlessly.
           </p>
 
           <div className="mt-12 rounded-3xl border border-emerald-100 bg-white/70 p-8 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-500">
-                  Monthly Savings
-                </p>
+                <p className="text-sm text-slate-500">Monthly Savings</p>
                 <h3 className="mt-2 text-3xl font-bold text-slate-900">
                   ₹12,500
                 </h3>
@@ -83,9 +108,11 @@ export default function LoginPage() {
       {/* RIGHT SECTION */}
       <section className="flex w-full items-center justify-center px-6 py-12 lg:w-1/2">
         <div className="w-full max-w-md">
-
           {/* Mobile Logo */}
-          <Link href="/" className="mb-10 flex items-center justify-center gap-2 lg:hidden">
+          <Link
+            href="/"
+            className="mb-10 flex items-center justify-center gap-2 lg:hidden"
+          >
             <Wallet className="text-emerald-600" size={26} />
             <span className="text-xl font-bold text-slate-900">
               Food Budget
@@ -102,7 +129,6 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
-
             {/* Email */}
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -158,24 +184,20 @@ export default function LoginPage() {
             </div>
 
             {/* Forgot Password */}
-            <div className="flex justify-end">
-              <Link
-                href="/forgot-password"
-                className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
-              >
-                Forgot password?
-              </Link>
-            </div>
-
+            {error && (
+              <div className="rounded-xl bg-red-50 p-4 text-sm text-red-600">
+                {error}
+              </div>
+            )}
             {/* Login Button */}
             <button
               type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-4 font-semibold text-white transition hover:bg-emerald-700"
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-4 font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Login
-              <ArrowRight size={18} />
+              {loading ? "Logging in..." : "Login"}
+              {!loading && <ArrowRight size={18} />}
             </button>
-
           </form>
 
           {/* Divider */}
@@ -185,26 +207,18 @@ export default function LoginPage() {
             <div className="h-px flex-1 bg-slate-200" />
           </div>
 
-          {/* Google Login */}
-          <button
-            type="button"
-            className="w-full rounded-xl border border-slate-200 py-3.5 font-medium text-slate-700 transition hover:bg-slate-50"
-          >
-            <span className="mr-2 font-bold text-blue-600">G</span>
-            Continue with Google
-          </button>
+       
 
           {/* Signup */}
           <p className="mt-8 text-center text-sm text-slate-500">
             Don't have an account?{" "}
             <Link
-              href="/signup"
+              href="/sign"
               className="font-semibold text-emerald-600 hover:text-emerald-700"
             >
               Create account
             </Link>
           </p>
-
         </div>
       </section>
     </main>

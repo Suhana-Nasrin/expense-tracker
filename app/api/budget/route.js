@@ -1,16 +1,26 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongo";
 import Budget from "@/models/Budget";
+import {getAuthUser} from "@/lib/auth"
 
 // GET - Fetch budgets
 export async function GET(request) {
   try {
+    const auth = await getAuthUser();
+
+    if (!auth) {
+      return NextResponse.json(
+        { message: "Unauthorized. Please login." },
+        { status: 401 }
+      );
+    }
+
     await connectDB();
 
     const { searchParams } = new URL(request.url);
     const bType = searchParams.get("bType");
 
-    const filter = bType ? { bType } : {};
+    const filter = bType ? { bType, userId: auth.userId } : {userId: auth.userId};
 
     const budgets = await Budget.find(filter).sort({
       createdAt: -1,
@@ -33,6 +43,15 @@ export async function GET(request) {
 // POST - Create budget
 export async function POST(request) {
   try {
+    const auth = await getAuthUser();
+
+    if (!auth) {
+      return NextResponse.json(
+        { message: "Unauthorized. Please login." },
+        { status: 401 }
+      );
+    }
+
     await connectDB();
 
     const { bType, budget, saving, userId, date, month } = await request.json();
@@ -66,7 +85,7 @@ export async function POST(request) {
       );
     }
 
-    const ownerId = userId || null;
+
 
     // DAILY BUDGET
     if (bType === "daily") {
@@ -87,7 +106,7 @@ export async function POST(request) {
       endOfDay.setUTCHours(23, 59, 59, 999);
 
       const existingBudget = await Budget.findOne({
-        userId: ownerId,
+        userId: auth.userId,
         bType: "daily",
         date: {
           $gte: startOfDay,
@@ -108,6 +127,7 @@ export async function POST(request) {
 
       const newBudget = await Budget.create({
         bType,
+        userId: auth.userId,
         budget: String(budgetAmount),
         saving: String(savingAmount),
         userId: ownerId,
@@ -137,7 +157,7 @@ export async function POST(request) {
       const selectedYear = new Date().getFullYear().toString();
 
       const existingBudget = await Budget.findOne({
-        userId: ownerId,
+        userId: auth.userId,
         bType: "monthly",
         month: selectedMonth,
         year: selectedYear,
@@ -158,7 +178,7 @@ export async function POST(request) {
         bType,
         budget: String(budgetAmount),
         saving: String(savingAmount),
-        userId: ownerId,
+        userId: auth.userId,
       };
 
       if (bType === "daily") {

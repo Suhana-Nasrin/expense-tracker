@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongo";
 import Expense from "@/models/Expense";
-// import { getUserId } from "@/lib/auth";
+import { getAuthUser } from "@/lib/auth";
 
 export async function GET(request) {
   try {
+    const auth = await getAuthUser();
+
+    if (!auth) {
+      return NextResponse.json(
+        { message: "Unauthorized. Please login." },
+        { status: 401 },
+      );
+    }
+
     await connectDB();
-
-    // const userId = await getUserId();
-
-    // if (!userId) {
-    //   return NextResponse.json(
-    //     { message: "Unauthorized" },
-    //     { status: 401 }
-    //   );
-    // }
 
     const { searchParams } = new URL(request.url);
 
@@ -40,16 +40,12 @@ export async function GET(request) {
           { status: 400 },
         );
       }
-    //   console.log("month", month);
-    //   console.log("year", year);
 
       const monthNumber = new Date(`${month} 1, ${year}`).getMonth();
 
       startDate = new Date(Date.UTC(Number(year), monthNumber, 1));
 
       endDate = new Date(Date.UTC(Number(year), monthNumber + 1, 1));
-      console.log("startDate", startDate);
-      console.log("endrtDate", endDate);
     } else {
       return NextResponse.json(
         { message: "Invalid expense type" },
@@ -60,7 +56,7 @@ export async function GET(request) {
     const result = await Expense.aggregate([
       {
         $match: {
-          //   userId,
+          userId: auth.userId,
           date: {
             $gte: startDate,
             $lt: endDate,
@@ -74,8 +70,6 @@ export async function GET(request) {
         },
       },
     ]);
-    // console.log(await Expense.find({}, { date: 1, price: 1, userId: 1 }));
-    console.log("tesult idfjdif", result);
 
     return NextResponse.json({
       type,
