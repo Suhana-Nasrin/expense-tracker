@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongo";
 import Budget from "@/models/Budget";
-// import { getUserId } from "@/lib/auth";
+import {getAuthUser} from "@/lib/auth"
 
 export async function GET() {
   try {
