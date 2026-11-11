@@ -10,12 +10,12 @@ import {
   IndianRupee,
   Calendar,
 } from "lucide-react";
-import { set } from "mongoose";
-
-type BudgetPeriod = "daily" | "monthly";
+import { useBudget } from "@/context/BudgeContext";
 
 export default function BudgetOptionsPage() {
-  const [period, setPeriod] = useState<BudgetPeriod | null>(null);
+  const { setBudget, budget } = useBudget();
+
+  const [period, setPeriod] = useState(null);
   const [amount, setAmount] = useState("");
   const [saved, setSaved] = useState(false);
   const [savingAmount, setSavingAmount] = useState("");
@@ -24,7 +24,7 @@ export default function BudgetOptionsPage() {
   const [year, setYear] = useState("");
   const [budgetId, setBudgetId] = useState("");
 
-  const choosePeriod = (value: BudgetPeriod) => {
+  const choosePeriod = (value) => {
     setPeriod(value);
     setSaved(false);
   };
@@ -85,12 +85,13 @@ export default function BudgetOptionsPage() {
       });
 
       const data = await res.json();
+      setBudget(data?.budget);
 
       if (!res.ok) {
         throw new Error(data.message || "Failed to save budget");
       }
 
-      setSaved(true);
+      setAlreadySaved(true);
     } catch (error) {
       console.error("Budget saving error:", error);
     }
@@ -114,11 +115,13 @@ export default function BudgetOptionsPage() {
     });
 
     const data = await res.json();
+
     if (!res.ok) {
       alert(data.message);
 
       return;
     }
+    setBudget(data?.budget);
     setEdit(false);
   };
 

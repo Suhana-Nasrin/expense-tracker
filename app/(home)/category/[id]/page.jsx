@@ -10,20 +10,17 @@ import {
   ArrowLeft,
   Search,
   Receipt,
+  PiggyBank
 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { MapPin, ShoppingBag, Shirt, Heart, Tag } from "lucide-react";
 import Link from "next/link";
+import { useBudget } from "@/context/BudgeContext";
+import { useExpense } from "@/context/ExpenseContext";
 
-type ItemType = {
-  _id?: string;
-  date: string;
-  item: string;
-  price: number;
-  categoryId?: { _id: string; name: string; icon: string };
-};
 
-const inr = (value: number) =>
+
+const inr = (value) =>
   new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
@@ -33,43 +30,44 @@ const inr = (value: number) =>
 export default function FoodCategoryPage() {
   const params = useParams();
 
-  const categoryId = params.id as string;
-  const [items, setItems] = useState<ItemType[]>([]);
+  const { expense } = useExpense();
+  const {budget} = useBudget();
+
+  const categoryId = params.id ;
+  const [items, setItems] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [itemName, setItemName] = useState("");
   const [price, setPrice] = useState("");
- const [date, setDate] = useState(
-  new Date().toISOString().split("T")[0]
-);
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<{ name: string; icon: string } | null>(null);
+  const [category, setCategory] = useState(null);
 
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams();
 
-useEffect(() => {
-  const fetchExpenses = async () => {
-    try {
-      const response = await fetch(`/api/expense/${id}`);
+  useEffect(() => {
+    const fetchExpenses = async () => {
+      try {
+        const response = await fetch(`/api/expense/${id}`);
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch expenses");
+        if (!response.ok) {
+          throw new Error("Failed to fetch expenses");
+        }
+
+        const data = await response.json();
+
+        console.log("Expenses:", data.expenses);
+
+        setItems(data.expenses || []);
+        setCategory(data?.category || null);
+      } catch (error) {
+        console.error("Error fetching expenses:", error);
       }
+    };
 
-      const data = await response.json();
-
-      console.log("Expenses:", data.expenses);
-
-      setItems(data.expenses || []);
-      setCategory(data?.category || null);
-    } catch (error) {
-      console.error("Error fetching expenses:", error);
+    if (id) {
+      fetchExpenses();
     }
-  };
-
-  if (id) {
-    fetchExpenses();
-  }
-}, [id]);
+  }, [id]);
 
   const total = useMemo(
     () => items.reduce((sum, row) => sum + row.price, 0),
@@ -79,7 +77,7 @@ useEffect(() => {
     row.item.toLowerCase().includes(query.toLowerCase()),
   );
 
-  const addItem = async (e: React.FormEvent) => {
+  const addItem = async (e) => {
     try {
       e.preventDefault();
       if (!itemName.trim() || Number(price) <= 0) return;
@@ -112,15 +110,15 @@ useEffect(() => {
     }
   };
   const iconOptions = [
-  { name: "Food", icon: Utensils },
-  { name: "Travel", icon: MapPin },
-  { name: "Shopping", icon: ShoppingBag },
-  { name: "Clothes", icon: Shirt },
-  { name: "Wishlist", icon: Heart },
-  { name: "Other", icon: Tag },
-];
+    { name: "Food", icon: Utensils },
+    { name: "Travel", icon: MapPin },
+    { name: "Shopping", icon: ShoppingBag },
+    { name: "Clothes", icon: Shirt },
+    { name: "Wishlist", icon: Heart },
+    { name: "Other", icon: Tag },
+  ];
 
-  const categoryIconName = category?.icon
+  const categoryIconName = category?.icon;
   const CategoryIcon =
     iconOptions.find((item) => item.name === categoryIconName)?.icon || Tag;
 
@@ -128,33 +126,54 @@ useEffect(() => {
     <main className="min-h-screen bg-slate-50 px-4 py-7 text-slate-900 sm:px-8">
       <div className="mx-auto max-w-6xl">
         {/* Top bar */}
+
         <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
               <CategoryIcon size={23} />
             </div>
+
             <div>
               <h1 className="text-2xl font-bold tracking-tight">
                 {category?.name} expenses
               </h1>
+
+              <p className="mt-1 text-sm text-slate-500 capitalize">
+                {budget?.bType} budget
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2.5 font-semibold text-emerald-900">
-            <Wallet size={18} />
-            <span className="text-sm">Available</span>
-            <span>{inr(23000)}</span>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Available Budget */}
+            <div className="flex items-center gap-2 rounded-2xl bg-emerald-100 px-4 py-3 text-emerald-900">
+              <Wallet size={18} />
+              <div>
+                <p className="text-xs font-medium">Available Budget</p>
+                <p className="font-semibold">{inr(Number(budget?.budget) - (Number(expense?.totalExpense) ||0 ))}</p>
+              </div>
+            </div>
+
+            {/* Savings */}
+            <div className="flex items-center gap-2 rounded-2xl bg-blue-100 px-4 py-3 text-blue-900">
+              <PiggyBank size={18} />
+              <div>
+                <p className="text-xs font-medium">Savings Available</p>
+                <p className="font-semibold">{inr(budget?.saving)}</p>
+              </div>
+            </div>
           </div>
         </header>
 
         {/* Category heading */}
         <section className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <Link href='/category'>
-             <button className="mb-4 inline-flex items-center gap-2 text-sm text-slate-500 hover:text-emerald-700">
-              <ArrowLeft size={16} /> All categories
-            </button>
+            <Link href="/category">
+              <button className="mb-4 inline-flex items-center gap-2 text-sm text-slate-500 hover:text-emerald-700">
+                <ArrowLeft size={16} /> All categories
+              </button>
             </Link>
-           
+
             <div className="flex items-center gap-3">
               <span className="rounded-xl bg-amber-100 p-2.5 text-amber-700">
                 <CategoryIcon size={22} />
@@ -255,12 +274,12 @@ useEffect(() => {
                   >
                     <td className="px-5 py-4 text-slate-400">{index + 1}</td>
                     <td className="px-5 py-4 text-slate-600">
-  {new Date(row?.date).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  })}
-</td>
+                      {new Date(row?.date).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <span className="rounded-lg bg-amber-50 p-2 text-amber-700">

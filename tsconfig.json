@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
+, "app/(home)/budget/page.jsx", "app/(home)/page.jsx"  ],
   "exclude": ["node_modules"]
 }

@@ -1,6 +1,5 @@
-
 import { NextResponse } from "next/server";
-import {connectDB} from "@/lib/mongo";
+import { connectDB } from "@/lib/mongo";
 import Budget from "@/models/Budget";
 // import { getUserId } from "@/lib/auth";
 
@@ -55,12 +54,12 @@ export async function GET() {
 
     return NextResponse.json(
       { message: "Failed to fetch budget" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
-  export async function PATCH(request) {
+export async function PATCH(request) {
   try {
     await connectDB();
 
@@ -73,37 +72,28 @@ export async function GET() {
     //   );
     // }
 
-    const {
-      budgetId,
-      bType,
-      budget,
-      saving,
-      date,
-      month,
-      year,
-    } = await request.json();
+    const { budgetId, bType, budget, saving, date, month } =
+      await request.json();
 
-
+    const year = String(new Date().getFullYear());
     if (!budgetId) {
       return NextResponse.json(
         { success: false, message: "Budget ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-  
     if (!["daily", "monthly"].includes(bType)) {
       return NextResponse.json(
         { success: false, message: "Invalid budget type" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-   
     if (budget == null || budget === "") {
       return NextResponse.json(
         { success: false, message: "Budget amount is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -118,23 +108,21 @@ export async function GET() {
     ) {
       return NextResponse.json(
         { success: false, message: "Invalid budget or saving amount" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-
     const existingBudget = await Budget.findOne({
       _id: budgetId,
-    //   userId,    later change needed
+      //   userId,    later change needed
     });
 
     if (!existingBudget) {
       return NextResponse.json(
         { success: false, message: "Budget not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
-
 
     const updateData = {
       bType,
@@ -142,12 +130,11 @@ export async function GET() {
       saving: String(savingAmount),
     };
 
-
     if (bType === "daily") {
       if (!date) {
         return NextResponse.json(
           { success: false, message: "Date is required" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -156,7 +143,7 @@ export async function GET() {
       if (Number.isNaN(selectedDate.getTime())) {
         return NextResponse.json(
           { success: false, message: "Invalid date" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -165,7 +152,6 @@ export async function GET() {
 
       const endOfDay = new Date(selectedDate);
       endOfDay.setUTCHours(23, 59, 59, 999);
-
 
       const duplicate = await Budget.findOne({
         _id: { $ne: budgetId },
@@ -183,7 +169,7 @@ export async function GET() {
             success: false,
             message: "A daily budget already exists for this date",
           },
-          { status: 409 }
+          { status: 409 },
         );
       }
 
@@ -197,7 +183,6 @@ export async function GET() {
       updateData.year = String(selectedDate.getUTCFullYear());
     }
 
-
     if (bType === "monthly") {
       if (!month || !year) {
         return NextResponse.json(
@@ -205,10 +190,9 @@ export async function GET() {
             success: false,
             message: "Month and year are required",
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
-
 
       const duplicate = await Budget.findOne({
         _id: { $ne: budgetId },
@@ -224,7 +208,7 @@ export async function GET() {
             success: false,
             message: "A monthly budget already exists for this month",
           },
-          { status: 409 }
+          { status: 409 },
         );
       }
 
@@ -232,7 +216,6 @@ export async function GET() {
       updateData.year = String(year);
       updateData.date = null;
     }
-
 
     const updatedBudget = await Budget.findOneAndUpdate(
       {
@@ -245,7 +228,7 @@ export async function GET() {
       {
         new: true,
         runValidators: true,
-      }
+      },
     );
 
     return NextResponse.json({
@@ -261,7 +244,7 @@ export async function GET() {
         success: false,
         message: "Failed to update budget",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -173,8 +173,9 @@ export async function POST(request) {
       }
 
       if (bType === "monthly") {
+        const selectedDate = new Date(date);
         budgetData.month = month; // from request body
-        budgetData.year = year; // from request body
+        budgetData.year = String(selectedDate.getUTCFullYear());
       }
 
       const newBudget = await Budget.create(budgetData);

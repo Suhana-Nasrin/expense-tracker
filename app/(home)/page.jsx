@@ -18,8 +18,11 @@ import {
   Shirt,
   Menu,
   Calendar,
+  PiggyBank
 } from "lucide-react";
 import Link from "next/link";
+import { useBudget } from "@/context/BudgeContext";
+import { useExpense } from "@/context/ExpenseContext";
 
 const categories = [
   {
@@ -74,7 +77,7 @@ const navItems = [
   { label: "Reports", icon: ChartNoAxesColumn },
 ];
 
-const money = (n: number) =>
+const money = (n) =>
   new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
@@ -82,6 +85,10 @@ const money = (n: number) =>
   }).format(n);
 
 export default function Home() {
+  const { budget } = useBudget();
+  const { expense } = useExpense();
+
+  console.log("expense", expense);
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 md:flex">
       {/* Sidebar */}
@@ -114,14 +121,35 @@ export default function Home() {
               <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
                 Good morning, 👋
               </h1>
+
               <p className="mt-2 text-sm text-slate-500">
                 Manage your expenses and stay on top of your budget.
               </p>
             </div>
-            <div className="flex items-center gap-3 rounded-2xl bg-emerald-100 px-5 py-3 text-emerald-900">
-              <Wallet size={21} />
-              <span className="text-sm font-medium">Available budget</span>
-              <strong className="text-lg">{money(23000)}</strong>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Budget Type */}
+              <div className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 capitalize">
+                {budget?.bType} Budget
+              </div>
+
+              {/* Available Budget */}
+              <div className="flex items-center gap-3 rounded-2xl bg-emerald-100 px-5 py-3 text-emerald-900">
+                <Wallet size={21} />
+                <div>
+                  <p className="text-xs font-medium">Available Budget</p>
+                  <strong className="text-lg">{money(Number(budget?.budget) - (Number(expense?.totalExpense) || 0) )}</strong>
+                </div>
+              </div>
+
+              {/* Savings */}
+              <div className="flex items-center gap-3 rounded-2xl bg-blue-100 px-5 py-3 text-blue-900">
+                <PiggyBank size={21} />
+                <div>
+                  <p className="text-xs font-medium">Savings Available</p>
+                  <strong className="text-lg">{money(budget?.saving)}</strong>
+                </div>
+              </div>
             </div>
           </div>
 
