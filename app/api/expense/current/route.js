@@ -8,18 +8,11 @@ export async function GET(request) {
   try {
     console.log("========== EXPENSE DEBUG START ==========");
 
+    // No connection() here
     const auth = await getAuthUser();
 
-    console.log("Authenticated user:", auth);
-    console.log("User ID:", auth?.userId);
-
     if (!auth) {
-      console.log("ERROR: User not authenticated");
-
-      return NextResponse.json(
-        { message: "Unauthorized. Please login." },
-        { status: 401 },
-      );
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     await connectDB();

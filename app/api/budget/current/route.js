@@ -7,14 +7,14 @@ export async function GET() {
   try {
     await connectDB();
 
-    // const userId = await getUserId();
+    const auth = await getAuthUser();
 
-    // if (!userId) {
-    //   return NextResponse.json(
-    //     { message: "Unauthorized" },
-    //     { status: 401 }
-    //   );
-    // }
+    if (!auth) {
+      return NextResponse.json(
+        { message: "Unauthorized. Please login." },
+        { status: 401 },
+      );
+    }
 
     const now = new Date();
 
@@ -32,6 +32,7 @@ export async function GET() {
 
     // Find today's daily budget OR current monthly budget
     const budget = await Budget.findOne({
+      userId: auth.userId,
       $or: [
         {
           bType: "daily",
@@ -61,16 +62,15 @@ export async function GET() {
 
 export async function PATCH(request) {
   try {
+    const auth = await getAuthUser();
+
+    if (!auth) {
+      return NextResponse.json(
+        { message: "Unauthorized. Please login." },
+        { status: 401 },
+      );
+    }
     await connectDB();
-
-    // const userId = await getUserId();
-
-    // if (!userId) {
-    //   return NextResponse.json(
-    //     { success: false, message: "Unauthorized" },
-    //     { status: 401 }
-    //   );
-    // }
 
     const { budgetId, bType, budget, saving, date, month } =
       await request.json();
@@ -114,7 +114,7 @@ export async function PATCH(request) {
 
     const existingBudget = await Budget.findOne({
       _id: budgetId,
-      //   userId,    later change needed
+      userId: auth.userId,
     });
 
     if (!existingBudget) {
@@ -155,7 +155,7 @@ export async function PATCH(request) {
 
       const duplicate = await Budget.findOne({
         _id: { $ne: budgetId },
-        // userId,
+        userId: auth.userId,
         bType: "daily",
         date: {
           $gte: startOfDay,
@@ -196,7 +196,7 @@ export async function PATCH(request) {
 
       const duplicate = await Budget.findOne({
         _id: { $ne: budgetId },
-        // userId,
+        userId: auth.userId,
         bType: "monthly",
         month,
         year: String(year),
@@ -220,7 +220,7 @@ export async function PATCH(request) {
     const updatedBudget = await Budget.findOneAndUpdate(
       {
         _id: budgetId,
-        // userId,
+        userId: auth.userId,
       },
       {
         $set: updateData,
