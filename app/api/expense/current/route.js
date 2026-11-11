@@ -2,12 +2,20 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongo";
 import Expense from "@/models/Expense";
 import { getAuthUser } from "@/lib/auth";
+import mongoose from "mongoose";
 
 export async function GET(request) {
   try {
+    console.log("========== EXPENSE DEBUG START ==========");
+
     const auth = await getAuthUser();
 
+    console.log("Authenticated user:", auth);
+    console.log("User ID:", auth?.userId);
+
     if (!auth) {
+      console.log("ERROR: User not authenticated");
+
       return NextResponse.json(
         { message: "Unauthorized. Please login." },
         { status: 401 },
@@ -16,12 +24,16 @@ export async function GET(request) {
 
     await connectDB();
 
+    console.log("MongoDB connected");
+
     const { searchParams } = new URL(request.url);
 
     const type = searchParams.get("type");
     const date = searchParams.get("date");
     const month = searchParams.get("month");
     const year = searchParams.get("year");
+
+    console.log("Query params:", { type, date, month, year });
 
     let startDate;
     let endDate;
@@ -44,7 +56,6 @@ export async function GET(request) {
       const monthNumber = new Date(`${month} 1, ${year}`).getMonth();
 
       startDate = new Date(Date.UTC(Number(year), monthNumber, 1));
-
       endDate = new Date(Date.UTC(Number(year), monthNumber + 1, 1));
     } else {
       return NextResponse.json(
@@ -53,10 +64,45 @@ export async function GET(request) {
       );
     }
 
+    console.log("Start date:", startDate);
+    console.log("End date:", endDate);
+
+    // DEBUG 1: Find all expenses for this user
+    const userExpenses = await Expense.find({
+      userId: auth.userId,
+    }).lean();
+
+    console.log("User expenses count:", userExpenses.length);
+    console.log("User expenses:", userExpenses);
+
+    // DEBUG 2: Check date field types and values
+    userExpenses.forEach((expense) => {
+      console.log({
+        expenseId: expense._id,
+        userId: expense.userId,
+        date: expense.date,
+        dateType: typeof expense.date,
+        price: expense.price,
+      });
+    });
+
+    // DEBUG 3: Check matching documents
+    const matchedExpenses = await Expense.find({
+      userId: auth.userId,
+      date: {
+        $gte: startDate,
+        $lt: endDate,
+      },
+    }).lean();
+
+    console.log("Matched expenses count:", matchedExpenses.length);
+    console.log("Matched expenses:", matchedExpenses);
+
+    // DEBUG 4: Aggregation
     const result = await Expense.aggregate([
       {
         $match: {
-          userId: auth.userId,
+          userId: new mongoose.Types.ObjectId(auth.userId),
           date: {
             $gte: startDate,
             $lt: endDate,
@@ -71,12 +117,17 @@ export async function GET(request) {
       },
     ]);
 
+    console.log("Aggregation result:", result);
+    console.log("Total expense:", result[0]?.totalExpense ?? 0);
+
+    console.log("========== EXPENSE DEBUG END ==========");
+
     return NextResponse.json({
       type,
       totalExpense: result[0]?.totalExpense ?? 0,
     });
   } catch (error) {
-    console.error(error);
+    console.error("EXPENSE API ERROR:", error);
 
     return NextResponse.json(
       { message: "Failed to calculate expenses" },

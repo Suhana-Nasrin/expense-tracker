@@ -9,6 +9,9 @@ import {
   Calendar,
   ChartNoAxesCombined,
 } from "lucide-react";
+
+import { LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -19,7 +22,22 @@ const navItems = [
   { label: "Categories", icon: Grid2X2, href: "/category" },
 ];
 export default function Sidebar() {
+  const router = useRouter();
   const pathname = usePathname();
+  async function handleLogout() {
+    try {
+      const res = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+
+      if (res.ok) {
+        router.push("/login");
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  }
   return (
     <div>
       <aside className="hidden w-64 h-full shrink-0 border-r border-slate-200 bg-white p-6 md:flex md:flex-col">
@@ -51,8 +69,12 @@ export default function Sidebar() {
           })}
         </nav>
         <div className="mt-auto border-t border-slate-100 pt-5">
-          <button className="flex items-center gap-3 px-4 py-3 text-sm text-slate-500">
-            <Settings size={18} /> Settings
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 px-4 py-3 text-sm text-slate-500 hover:text-red-500 transition"
+          >
+            <LogOut size={18} />
+            Logout
           </button>
         </div>
       </aside>

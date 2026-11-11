@@ -26,6 +26,7 @@ import Link from "next/link";
 import { useBudget } from "@/context/BudgeContext";
 import { useExpense } from "@/context/ExpenseContext";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const money = (n) =>
   new Intl.NumberFormat("en-IN", {
@@ -35,6 +36,7 @@ const money = (n) =>
   }).format(n);
 
 export default function Home() {
+  const router = useRouter();
   const { budget } = useBudget();
   const { expense, setExpense } = useExpense();
   const [summary, setSummary] = useState(null);
@@ -114,24 +116,23 @@ export default function Home() {
 
     fetchRecentExpenses();
   }, []);
+  const fetchSummary = async () => {
+    try {
+      const res = await fetch(`/api/expense/summary`);
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message);
+      }
+
+      setSummary(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   useEffect(() => {
-    const fetchSummary = async () => {
-      try {
-        const res = await fetch(`/api/expense/summary`);
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.message);
-        }
-
-        setSummary(data);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
     fetchSummary();
   }, []);
   const handleAddExpense = async (e) => {
@@ -158,19 +159,20 @@ export default function Home() {
       if (!res.ok) {
         throw new Error(data.message || "Failed to add expense");
       }
+      router.refresh();
 
       setExpense((e) => ({
         ...e,
         totalExpense: e.totalExpense + Number(form.amount),
       }));
+      fetchSummary();
+
       setForm({
         title: "",
         amount: "",
         categoryId: "",
         date: new Date().toISOString().split("T")[0],
       });
-
-      alert("Expense added successfully!");
     } catch (error) {
       console.error(error);
       alert(error.message);
@@ -227,7 +229,7 @@ export default function Home() {
                   <p className="text-xs font-medium">Available Budget</p>
                   <strong className="text-lg">
                     {money(
-                      Number(budget?.budget) -
+                      (Number(budget?.budget) || 0) -
                         (Number(expense?.totalExpense) || 0),
                     )}
                   </strong>
@@ -239,7 +241,10 @@ export default function Home() {
                 <PiggyBank size={21} />
                 <div>
                   <p className="text-xs font-medium">Savings Available</p>
-                  <strong className="text-lg">{money(budget?.saving)}</strong>
+                  <strong className="text-lg">
+                    {" "}
+                    {money(Number(budget?.saving) || 0)}
+                  </strong>
                 </div>
               </div>
             </div>
@@ -426,9 +431,10 @@ export default function Home() {
               <section>
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-lg font-semibold">Recent activity</h2>
-                  <button className="flex items-center gap-1 text-sm font-medium text-emerald-700">
+
+                  {/* <button className="flex items-center gap-1 text-sm font-medium text-emerald-700">
                     View all <ArrowRight size={16} />
-                  </button>
+                  </button> */}
                 </div>
                 <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                   {expenses.map((expense, i) => {
@@ -480,13 +486,13 @@ export default function Home() {
                 <h2 className="font-semibold">Monthly summary</h2>
 
                 <span className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs text-slate-600">
-                  {new Date(summary?.year, summary?.month - 1).toLocaleDateString(
-                    "en-IN",
-                    {
-                      month: "short",
-                      year: "numeric",
-                    },
-                  )}
+                  {new Date(
+                    summary?.year,
+                    summary?.month - 1,
+                  ).toLocaleDateString("en-IN", {
+                    month: "short",
+                    year: "numeric",
+                  })}
                   ⌄
                 </span>
               </div>
