@@ -53,7 +53,7 @@ export default function BudgetOptionsPage() {
           setSavingAmount(data.budget.saving);
           setMonth(data.budget.month || "");
           setDate(new Date(data.budget.date).toISOString().split("T")[0]);
-          setYear(new Date(data.budget.date || "").getFullYear().toString());
+          setYear(data?.budget?.year);
           setBudgetId(data.budget._id);
           setAlreadySaved(true);
         }
