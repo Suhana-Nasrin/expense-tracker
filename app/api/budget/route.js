@@ -41,32 +41,42 @@ export async function GET(request) {
 }
 
 // POST - Create budget
+
 export async function POST(request) {
   try {
     const auth = await getAuthUser();
 
     if (!auth) {
       return NextResponse.json(
-        { message: "Unauthorized. Please login." },
+        { success: false, message: "Unauthorized. Please login." },
         { status: 401 }
       );
     }
 
     await connectDB();
 
-    const { bType, budget, saving, userId, date, month } = await request.json();
+    const {
+      bType,
+      budget,
+      saving,
+      date,
+      month,
+      year,
+    } = await request.json();
 
+    
     if (!["daily", "monthly"].includes(bType)) {
       return NextResponse.json(
         { success: false, message: "Invalid budget type" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
+    // Validate budget amount
     if (budget == null || budget === "") {
       return NextResponse.json(
         { success: false, message: "Budget amount is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -81,20 +91,20 @@ export async function POST(request) {
     ) {
       return NextResponse.json(
         { success: false, message: "Invalid budget or saving amount" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-
-
+    // =========================
     // DAILY BUDGET
+    // =========================
     if (bType === "daily") {
       const selectedDate = date ? new Date(date) : new Date();
 
       if (Number.isNaN(selectedDate.getTime())) {
         return NextResponse.json(
           { success: false, message: "Invalid date" },
-          { status: 400 },
+          { status: 400 }
         );
       }
 
@@ -105,6 +115,32 @@ export async function POST(request) {
       const endOfDay = new Date(selectedDate);
       endOfDay.setUTCHours(23, 59, 59, 999);
 
+      const selectedMonth = startOfDay.toLocaleString("en-US", {
+        month: "long",
+        timeZone: "UTC",
+      });
+
+      const selectedYear = String(startOfDay.getUTCFullYear());
+
+      // Check if monthly budget exists for this month
+      const monthlyBudgetExists = await Budget.findOne({
+        userId: auth.userId,
+        bType: "monthly",
+        month: selectedMonth,
+        year: selectedYear,
+      });
+
+      if (monthlyBudgetExists) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Cannot create daily budget because monthly budget already exists for ${selectedMonth} ${selectedYear}`,
+          },
+          { status: 409 }
+        );
+      }
+
+      // Check duplicate daily budget for same date
       const existingBudget = await Budget.findOne({
         userId: auth.userId,
         bType: "daily",
@@ -121,22 +157,19 @@ export async function POST(request) {
             message: "Daily budget already exists for this date",
             budget: existingBudget,
           },
-          { status: 409 },
+          { status: 409 }
         );
       }
 
+      // Create daily budget
       const newBudget = await Budget.create({
-        bType,
+        bType: "daily",
         userId: auth.userId,
         budget: String(budgetAmount),
         saving: String(savingAmount),
-        userId: ownerId,
         date: startOfDay,
-        month: selectedDate.toLocaleString("en-US", {
-          month: "long",
-          timeZone: "UTC",
-        }),
-        year: String(selectedDate.getUTCFullYear()),
+        month: selectedMonth,
+        year: selectedYear,
       });
 
       return NextResponse.json(
@@ -145,17 +178,42 @@ export async function POST(request) {
           message: "Daily budget created successfully",
           budget: newBudget,
         },
-        { status: 201 },
+        { status: 201 }
       );
     }
 
+    // =========================
     // MONTHLY BUDGET
+    // =========================
     if (bType === "monthly") {
       const selectedMonth =
-        month || new Date().toLocaleString("en-US", { month: "long" });
+        month || new Date().toLocaleString("en-US", {
+          month: "long",
+        });
 
-      const selectedYear = new Date().getFullYear().toString();
+      const selectedYear = String(
+        year || new Date().getFullYear()
+      );
 
+      // Check if any daily budget exists for this month
+      const dailyBudgetExists = await Budget.findOne({
+        userId: auth.userId,
+        bType: "daily",
+        month: selectedMonth,
+        year: selectedYear,
+      });
+
+      if (dailyBudgetExists) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Cannot create monthly budget because daily budgets already exist for ${selectedMonth} ${selectedYear}`,
+          },
+          { status: 409 }
+        );
+      }
+
+      // Check duplicate monthly budget
       const existingBudget = await Budget.findOne({
         userId: auth.userId,
         bType: "monthly",
@@ -167,45 +225,30 @@ export async function POST(request) {
         return NextResponse.json(
           {
             success: false,
-            message: "Monthly budget already exists for this month",
+            message: `Monthly budget already exists for ${selectedMonth} ${selectedYear}`,
             budget: existingBudget,
           },
-          { status: 409 },
+          { status: 409 }
         );
       }
 
-      const budgetData = {
-        bType,
+      // Create monthly budget
+      const newBudget = await Budget.create({
+        bType: "monthly",
+        userId: auth.userId,
         budget: String(budgetAmount),
         saving: String(savingAmount),
-        userId: auth.userId,
-      };
+        month: selectedMonth,
+        year: selectedYear,
+      });
 
-      if (bType === "daily") {
-        const selectedDate = new Date(date);
-
-        budgetData.date = selectedDate;
-        budgetData.month = selectedDate.toLocaleString("en-US", {
-          month: "long",
-          timeZone: "UTC",
-        });
-        budgetData.year = String(selectedDate.getUTCFullYear());
-      }
-
-      if (bType === "monthly") {
-        const selectedDate = new Date(date);
-        budgetData.month = month; // from request body
-        budgetData.year = String(selectedDate.getUTCFullYear());
-      }
-
-      const newBudget = await Budget.create(budgetData);
       return NextResponse.json(
         {
           success: true,
           message: "Monthly budget created successfully",
           budget: newBudget,
         },
-        { status: 201 },
+        { status: 201 }
       );
     }
   } catch (error) {
@@ -213,7 +256,7 @@ export async function POST(request) {
 
     return NextResponse.json(
       { success: false, message: "Failed to create budget" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

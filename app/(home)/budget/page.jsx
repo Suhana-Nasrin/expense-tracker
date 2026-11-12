@@ -52,7 +52,11 @@ export default function BudgetOptionsPage() {
           setAmount(data.budget.budget);
           setSavingAmount(data.budget.saving);
           setMonth(data.budget.month || "");
-          setDate(new Date(data.budget.date).toISOString().split("T")[0]);
+          setDate(
+            data.budget.date
+              ? new Date(data.budget.date).toISOString().split("T")[0]
+              : new Date().toISOString().split("T")[0],
+          );
           setYear(data?.budget?.year);
           setBudgetId(data.budget._id);
           setAlreadySaved(true);
@@ -87,8 +91,10 @@ export default function BudgetOptionsPage() {
       const data = await res.json();
       setBudget(data?.budget);
 
+      console.log("data", data);
       if (!res.ok) {
-        throw new Error(data.message || "Failed to save budget");
+        alert(data?.message || "failed");
+        return
       }
 
       setAlreadySaved(true);

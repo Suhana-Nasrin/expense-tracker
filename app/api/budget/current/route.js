@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongo";
 import Budget from "@/models/Budget";
-import {getAuthUser} from "@/lib/auth"
+import { getAuthUser } from "@/lib/auth";
 
 export async function GET() {
   try {
@@ -70,12 +70,12 @@ export async function PATCH(request) {
         { status: 401 },
       );
     }
+
     await connectDB();
 
-    const { budgetId, bType, budget, saving, date, month } =
+    const { budgetId, bType, budget, saving, date, month, year } =
       await request.json();
 
-    const year = String(new Date().getFullYear());
     if (!budgetId) {
       return NextResponse.json(
         { success: false, message: "Budget ID is required" },
@@ -112,6 +112,7 @@ export async function PATCH(request) {
       );
     }
 
+    // Find existing budget
     const existingBudget = await Budget.findOne({
       _id: budgetId,
       userId: auth.userId,
@@ -130,6 +131,9 @@ export async function PATCH(request) {
       saving: String(savingAmount),
     };
 
+    // =========================
+    // DAILY BUDGET UPDATE
+    // =========================
     if (bType === "daily") {
       if (!date) {
         return NextResponse.json(
@@ -153,6 +157,33 @@ export async function PATCH(request) {
       const endOfDay = new Date(selectedDate);
       endOfDay.setUTCHours(23, 59, 59, 999);
 
+      const selectedMonth = selectedDate.toLocaleString("en-US", {
+        month: "long",
+        timeZone: "UTC",
+      });
+
+      const selectedYear = String(selectedDate.getUTCFullYear());
+
+      // Check monthly budget for selected month
+      const monthlyBudgetExists = await Budget.findOne({
+        _id: { $ne: budgetId },
+        userId: auth.userId,
+        bType: "monthly",
+        month: selectedMonth,
+        year: selectedYear,
+      });
+
+      if (monthlyBudgetExists) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Cannot update daily budget because monthly budget already exists for ${selectedMonth} ${selectedYear}`,
+          },
+          { status: 409 },
+        );
+      }
+
+      // Check duplicate daily budget for same date
       const duplicate = await Budget.findOne({
         _id: { $ne: budgetId },
         userId: auth.userId,
@@ -174,15 +205,13 @@ export async function PATCH(request) {
       }
 
       updateData.date = startOfDay;
-
-      updateData.month = selectedDate.toLocaleString("en-US", {
-        month: "long",
-        timeZone: "UTC",
-      });
-
-      updateData.year = String(selectedDate.getUTCFullYear());
+      updateData.month = selectedMonth;
+      updateData.year = selectedYear;
     }
 
+    // =========================
+    // MONTHLY BUDGET UPDATE
+    // =========================
     if (bType === "monthly") {
       if (!month || !year) {
         return NextResponse.json(
@@ -194,29 +223,52 @@ export async function PATCH(request) {
         );
       }
 
+      const selectedYear = String(year);
+
+      // Check if daily budgets exist in selected month
+      const dailyBudgetExists = await Budget.findOne({
+        _id: { $ne: budgetId },
+        userId: auth.userId,
+        bType: "daily",
+        month,
+        year: selectedYear,
+      });
+
+      if (dailyBudgetExists) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Cannot update monthly budget because daily budgets already exist for ${month} ${selectedYear}`,
+          },
+          { status: 409 },
+        );
+      }
+
+      // Check duplicate monthly budget
       const duplicate = await Budget.findOne({
         _id: { $ne: budgetId },
         userId: auth.userId,
         bType: "monthly",
         month,
-        year: String(year),
+        year: selectedYear,
       });
 
       if (duplicate) {
         return NextResponse.json(
           {
             success: false,
-            message: "A monthly budget already exists for this month",
+            message: `A monthly budget already exists for ${month} ${selectedYear}`,
           },
           { status: 409 },
         );
       }
 
       updateData.month = month;
-      updateData.year = String(year);
+      updateData.year = selectedYear;
       updateData.date = null;
     }
 
+    // Update budget
     const updatedBudget = await Budget.findOneAndUpdate(
       {
         _id: budgetId,
